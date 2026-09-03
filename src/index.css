@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Camera-flash pulse shown over the viewfinder each time a photo is taken. */
+@keyframes capture-flash {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.capture-flash {
+  animation: capture-flash 400ms ease-out forwards;
+}
+
