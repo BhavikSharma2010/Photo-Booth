@@ -99,7 +99,7 @@ function App() {
           {/* Cozy frosted overlay — light beige wash keeps text legible while the photo stays clear */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[#F7F5EB]/40 pointer-events-none z-0"
+            className="absolute inset-0 bg-[#F7F5EB]/25 pointer-events-none z-0"
           />
 
           {/* Header */}

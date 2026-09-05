@@ -230,7 +230,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden relative">
+    <div className="h-[100dvh] w-full bg-gradient-to-b from-[#33291d] via-[#171411] to-black flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden relative">
       {/* Exit back to the landing page */}
       <button
         onClick={onExit}
