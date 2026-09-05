@@ -15,6 +15,9 @@ const COUNTDOWN_TICK_MS = 1000;
 /** Pause between consecutive shots in an auto-capture session. */
 const CAPTURE_GAP_MS = 1500;
 
+/** How long the result view shows the empty printer slot before the strip ejects. */
+const PRINT_EJECT_DELAY_MS = 2000;
+
 /** Photos required per layout format — derived from the PhotoLayout type. */
 const PHOTOS_PER_LAYOUT: Record<PhotoLayout, number> = {
   'strip-3': 3,
@@ -68,6 +71,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const [isCaptureSessionActive, setIsCaptureSessionActive] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('none');
+  const [isPrinting, setIsPrinting] = useState(true);
 
   const webcamRef = useRef<Webcam>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -83,6 +87,17 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const isSetComplete = capturedPhotos.length === PHOTOS_PER_LAYOUT[layout];
   const filterClassName = FILTER_CLASSES[activeFilter];
 
+  // Eject the strip PRINT_EJECT_DELAY_MS after the result view appears.
+  // Keyed on isSetComplete (not mount): the booth stays mounted across
+  // viewfinder/result switches, so a mount-only effect would fire too early.
+  // isPrinting is armed true by the initial state and by resetBooth, so every
+  // completed set starts hidden and this timer alone triggers the eject.
+  useEffect(() => {
+    if (!isSetComplete) return undefined;
+    const timer = setTimeout(() => setIsPrinting(false), PRINT_EJECT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [isSetComplete]);
+
   const handleFlipCamera = () => {
     setFacingMode((mode) => (mode === 'user' ? 'environment' : 'user'));
   };
@@ -90,6 +105,8 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const resetBooth = () => {
     setCapturedPhotos([]);
     setIsDownloadError(false);
+    // Re-arm the print animation for the next set (effect runs post-paint).
+    setIsPrinting(true);
   };
 
   const capturePhoto = async (): Promise<string | null> => {
@@ -180,13 +197,24 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
       {isSetComplete ? (
         /* Result & Download view */
         <div className="w-full max-w-md max-h-full overflow-y-auto flex flex-col items-center justify-center gap-8">
-          {/* Download target: the preview card */}
-          <div ref={previewRef} className="w-full max-w-xs">
-            <PhotoBoothPreview
-              photos={capturedPhotos}
-              layout={layout}
-              filterClassName={filterClassName}
-            />
+          {/* Printer slot: the card ejects downward out of it; overflow-hidden clips
+              the card above the lip while printing (no top padding, so -translate-y-full
+              hides exactly at the clip edge). Chrome stays outside the download target. */}
+          <div className="relative z-10 w-full flex justify-center px-6 pb-6 overflow-hidden bg-zinc-900 border-t border-zinc-700/50">
+            <div
+              className={`w-full max-w-xs transition-transform duration-[1500ms] ease-[cubic-bezier(0.25,0.1,0.25,1)] motion-reduce:transition-none ${
+                isPrinting ? '-translate-y-full' : 'translate-y-0'
+              }`}
+            >
+              {/* Download target: the preview card */}
+              <div ref={previewRef} className="w-full">
+                <PhotoBoothPreview
+                  photos={capturedPhotos}
+                  layout={layout}
+                  filterClassName={filterClassName}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Filter selection (outside previewRef so it is never baked into the download) */}
@@ -215,13 +243,15 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <button
               onClick={resetBooth}
-              className="bg-white/10 text-white hover:bg-white/20 px-6 py-3 rounded-full font-medium transition-colors w-full sm:w-auto"
+              disabled={isPrinting}
+              className="bg-white/10 text-white hover:bg-white/20 px-6 py-3 rounded-full font-medium transition-colors w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10"
             >
               Retake
             </button>
             <button
               onClick={handleDownload}
-              className="bg-white text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-zinc-200 transition-colors w-full sm:w-auto"
+              disabled={isPrinting}
+              className="bg-white text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-zinc-200 transition-colors w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
             >
               Download
             </button>

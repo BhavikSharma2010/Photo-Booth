@@ -12,6 +12,15 @@ interface PhotoBoothPreviewProps {
   filterClassName: string;
 }
 
+/** Glossy plastic sheen over the printed card. Rendered after the photos so it
+ *  paints above them; lives inside the html-to-image target so downloads keep it. */
+const glossOverlay = (
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute inset-0 z-50 bg-gradient-to-br from-white/10 via-transparent to-white/5 opacity-80 mix-blend-overlay"
+  />
+);
+
 export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoothPreviewProps) => {
   // 3-Photo Strip Layout
   if (layout === 'strip-3') {
@@ -19,6 +28,7 @@ export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoot
       <div
         className={`
           photoPreviewContainer
+          relative overflow-hidden mx-auto
           flex flex-col bg-white
           p-3 gap-3
           w-[min(85%,272px,24.4dvh)]
@@ -36,6 +46,7 @@ export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoot
             />
           </div>
         ))}
+        {glossOverlay}
       </div>
     );
   }
@@ -45,6 +56,7 @@ export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoot
     <div
       className={`
         photoPreviewContainer
+        relative overflow-hidden mx-auto
         grid grid-cols-2 bg-white
         p-2 gap-2
         w-[min(85%,272px,55dvh)]
@@ -62,6 +74,7 @@ export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoot
           />
         </div>
       ))}
+      {glossOverlay}
     </div>
   );
 };
