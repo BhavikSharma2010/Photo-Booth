@@ -8,21 +8,24 @@ import type { PhotoLayout } from '../types/photoLayout';
 interface PhotoBoothPreviewProps {
   photos: string[];
   layout: PhotoLayout;
+  /** Resolved Tailwind filter utilities applied to the wrapper (see FILTER_CLASSES). */
+  filterClassName: string;
 }
 
-export const PhotoBoothPreview = ({ photos, layout }: PhotoBoothPreviewProps) => {
+export const PhotoBoothPreview = ({ photos, layout, filterClassName }: PhotoBoothPreviewProps) => {
   // 3-Photo Strip Layout
   if (layout === 'strip-3') {
     return (
       <div
-        className="
+        className={`
           photoPreviewContainer
           flex flex-col bg-white
           p-3 gap-3
           w-[min(85%,272px,24.4dvh)]
           rounded-lg
           shadow-2xl
-        "
+          ${filterClassName}
+        `}
       >
         {photos.map((photoUrl, index) => (
           <div key={index} className="aspect-[4/3] bg-zinc-100 overflow-hidden rounded">
@@ -40,14 +43,15 @@ export const PhotoBoothPreview = ({ photos, layout }: PhotoBoothPreviewProps) =>
   // 4-Photo Grid Layout
   return (
     <div
-      className="
+      className={`
         photoPreviewContainer
         grid grid-cols-2 bg-white
         p-2 gap-2
         w-[min(85%,272px,55dvh)]
         rounded-lg
         shadow-2xl
-      "
+        ${filterClassName}
+      `}
     >
       {photos.map((photoUrl, index) => (
         <div key={index} className="aspect-square bg-zinc-100 overflow-hidden rounded">

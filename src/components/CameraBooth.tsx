@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { toJpeg } from 'html-to-image';
 import type { PhotoLayout } from '../types/photoLayout';
+import { FILTER_CLASSES, FILTER_OPTIONS, type PhotoFilter } from '../types/photoFilter';
 import { LayoutFormatToggle } from './ui/LayoutFormatToggle';
 import { PhotoBoothPreview } from './PhotoBoothPreview';
 
@@ -66,6 +67,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const [isDownloadError, setIsDownloadError] = useState(false);
   const [isCaptureSessionActive, setIsCaptureSessionActive] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<PhotoFilter>('none');
 
   const webcamRef = useRef<Webcam>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   }, []);
 
   const isSetComplete = capturedPhotos.length === PHOTOS_PER_LAYOUT[layout];
+  const filterClassName = FILTER_CLASSES[activeFilter];
 
   const handleFlipCamera = () => {
     setFacingMode((mode) => (mode === 'user' ? 'environment' : 'user'));
@@ -176,10 +179,36 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
 
       {isSetComplete ? (
         /* Result & Download view */
-        <div className="w-full max-w-md flex flex-col items-center justify-center gap-8">
+        <div className="w-full max-w-md max-h-full overflow-y-auto flex flex-col items-center justify-center gap-8">
           {/* Download target: the preview card */}
           <div ref={previewRef} className="w-full max-w-xs">
-            <PhotoBoothPreview photos={capturedPhotos} layout={layout} />
+            <PhotoBoothPreview
+              photos={capturedPhotos}
+              layout={layout}
+              filterClassName={filterClassName}
+            />
+          </div>
+
+          {/* Filter selection (outside previewRef so it is never baked into the download) */}
+          <div
+            role="group"
+            aria-label="Photo filter"
+            className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 w-full px-4"
+          >
+            {FILTER_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setActiveFilter(value)}
+                aria-pressed={activeFilter === value}
+                className={`text-sm sm:text-base px-5 py-2 sm:px-6 sm:py-2.5 rounded-full transition-colors ${
+                  activeFilter === value
+                    ? 'bg-white text-zinc-950 font-medium'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Final controls */}
