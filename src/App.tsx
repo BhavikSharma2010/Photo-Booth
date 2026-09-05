@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { CameraBooth } from './components/CameraBooth';
+// BACKUP: topographic contour backdrop (replaced by the photo background).
+// Restore by uncommenting this and the backdrop block below.
+// import { TOPOGRAPHY_BG } from './lib/patterns';
 
 /*
- * Seamless botanical line-art tile (inline SVG data URI).
+ * BACKUP: Seamless botanical line-art tile (inline SVG data URI) — replaced by
+ * the photo background. Restore by uncommenting this block and the botanical
+ * backdrop block in the JSX below.
+ *
  * Delicate charcoal outlines, no fills — a floral print like line-art
  * fabric. Motifs crossing a tile edge are duplicated via <use> offsets
  * (± tile size) so the pattern wraps invisibly when tiled.
- */
+ *
 const BOTANICAL_TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280">
   <defs>
     <g id="botanical-sprig">
@@ -57,6 +63,7 @@ const BOTANICAL_TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="280" 
 </svg>`;
 
 const BOTANICAL_BG = `url("data:image/svg+xml,${encodeURIComponent(BOTANICAL_TILE_SVG)}")`;
+*/
 
 function App() {
   const [isBoothActive, setIsBoothActive] = useState(false);
@@ -66,14 +73,33 @@ function App() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative bg-[#F7F5EB]">
+    <div
+      className="w-full min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#F7F5EB] bg-cover bg-center bg-no-repeat bg-fixed"
+      style={{
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1776715139302-281f91c0c9ca?w=1920&auto=format&fit=crop&q=80')",
+      }}
+    >
       {!isBoothActive ? (
         <>
-          {/* Botanical line-art backdrop */}
-          <div
+          {/* BACKUP: Topographic contour backdrop (replaced by the photo background) */}
+          {/* <div
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20 mix-blend-multiply"
+            style={{ backgroundImage: TOPOGRAPHY_BG }}
+          /> */}
+
+          {/* BACKUP: Botanical line-art backdrop (replaced by the photo background) */}
+          {/* <div
             aria-hidden="true"
             className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-15 mix-blend-multiply"
             style={{ backgroundImage: BOTANICAL_BG, backgroundSize: '280px 280px' }}
+          /> */}
+
+          {/* Cozy frosted overlay — blends the photo into the beige theme, keeps text legible */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-[#F7F5EB]/65 backdrop-blur-[2px] pointer-events-none z-0"
           />
 
           {/* Header */}
@@ -93,7 +119,7 @@ function App() {
            * THEME OPTIONS - Copy & paste to test different aesthetics
            * ══════════════════════════════════════════════════════════════════════════
            *
-           * APPLIED - Warm Beige (with botanical line-art backdrop)
+           * APPLIED - Warm Beige (with warm scenery photo backdrop)
            * Main Wrapper: bg-[#F7F5EB]
            * Text: text-[#2C2A29]
            * Secondary: text-[#2C2A29]/70
