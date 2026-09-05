@@ -27,6 +27,11 @@ const PHOTOS_PER_LAYOUT: Record<PhotoLayout, number> = {
 /** Filename for the downloaded photo strip. */
 const DOWNLOAD_FILENAME = 'virtual-photobooth.jpg';
 
+/** Physical cue sounds, served from public/sounds/. */
+const SOUND_BEEP = '/sounds/beep.mp3';
+const SOUND_SHUTTER = '/sounds/shutter.mp3';
+const SOUND_PRINT = '/sounds/print.mp3';
+
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
@@ -58,6 +63,46 @@ const mirrorScreenshot = (dataUrl: string): Promise<string> =>
     image.src = dataUrl;
   });
 
+/**
+ * Creates one HTMLAudioElement per component mount and starts preloading its
+ * asset. Cue files live in public/sounds/ and may not exist yet; a missing
+ * asset simply fails to load and playCue swallows the rejection, so the booth
+ * stays silent-but-stable until real files are dropped in.
+ */
+const useAudioCue = (src: string) => {
+  const soundRef = useRef<HTMLAudioElement | null>(null);
+  // Created post-mount, not during render: the earliest cue is a user click,
+  // long after this effect runs, so preloading is never late.
+  useEffect(() => {
+    const sound = new Audio(src);
+    soundRef.current = sound;
+    // Stop a playing cue when the booth unmounts (e.g. exit mid-print).
+    return () => {
+      sound.pause();
+      soundRef.current = null;
+    };
+  }, [src]);
+  return soundRef;
+};
+
+/**
+ * Plays a preloaded cue from the top. Restarts cleanly on rapid retriggers
+ * and silently ignores autoplay restrictions, missing assets, and engines
+ * that throw synchronously — audio is polish, never a failure path.
+ */
+const playCue = (sound: HTMLAudioElement | null) => {
+  if (!sound) return;
+  try {
+    // Rewind first so retriggers restart instead of overlapping.
+    sound.currentTime = 0;
+    void sound.play().catch(() => {
+      /* Autoplay policy or missing/unloadable asset — staying silent is correct. */
+    });
+  } catch {
+    /* Defensive: some engines throw synchronously from the media API. */
+  }
+};
+
 interface CameraBoothProps {
   onExit: () => void;
 }
@@ -77,6 +122,11 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const previewRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
 
+  // One preloaded Audio per cue, created once on mount.
+  const beepSound = useAudioCue(SOUND_BEEP);
+  const shutterSound = useAudioCue(SOUND_SHUTTER);
+  const printSound = useAudioCue(SOUND_PRINT);
+
   // Stop an in-flight capture session if the booth unmounts mid-run.
   useEffect(() => {
     return () => {
@@ -94,9 +144,13 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   // completed set starts hidden and this timer alone triggers the eject.
   useEffect(() => {
     if (!isSetComplete) return undefined;
-    const timer = setTimeout(() => setIsPrinting(false), PRINT_EJECT_DELAY_MS);
+    const timer = setTimeout(() => {
+      // The eject slide starts on this flip — cue the printer sound with it.
+      setIsPrinting(false);
+      playCue(printSound.current);
+    }, PRINT_EJECT_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [isSetComplete]);
+  }, [isSetComplete, printSound]);
 
   const handleFlipCamera = () => {
     setFacingMode((mode) => (mode === 'user' ? 'environment' : 'user'));
@@ -110,6 +164,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   };
 
   const capturePhoto = async (): Promise<string | null> => {
+    playCue(shutterSound.current);
     const screenshot = webcamRef.current?.getScreenshot();
     if (!screenshot) return null;
     // Front-camera frames are flipped so the stored photo matches the
@@ -131,6 +186,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
     try {
       for (let remaining = CAPTURE_COUNTDOWN_SECONDS; remaining > 0; remaining -= 1) {
         setCountdown(remaining);
+        playCue(beepSound.current);
         await sleep(COUNTDOWN_TICK_MS);
         if (cancelRef.current) return;
       }
