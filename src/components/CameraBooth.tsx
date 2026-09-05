@@ -117,6 +117,8 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
   const [flashKey, setFlashKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('none');
   const [isPrinting, setIsPrinting] = useState(true);
+  const [hasCameraError, setHasCameraError] = useState(false);
+  const [cameraRetryKey, setCameraRetryKey] = useState(0);
 
   const webcamRef = useRef<Webcam>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -154,6 +156,15 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
 
   const handleFlipCamera = () => {
     setFacingMode((mode) => (mode === 'user' ? 'environment' : 'user'));
+  };
+
+  // Bumping the key remounts the Webcam, which re-runs getUserMedia.
+  // Aborting any in-flight session first keeps the dying capture loop from
+  // hitting a not-yet-ready camera on the fresh mount.
+  const retryCamera = () => {
+    cancelRef.current = true;
+    setCameraRetryKey((key) => key + 1);
+    setHasCameraError(false);
   };
 
   const resetBooth = () => {
@@ -321,11 +332,21 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
         /* Viewfinder */
         <div className="relative w-full max-w-md h-[75dvh] max-h-[800px] bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
           <Webcam
+            key={cameraRetryKey}
             audio={false}
             screenshotFormat="image/jpeg"
             ref={webcamRef}
             videoConstraints={{ facingMode }}
             mirrored={facingMode === 'user'}
+            onUserMedia={(stream) => {
+              setHasCameraError(false);
+              // Surface unplug / OS revocation mid-stream — request failures
+              // reach onUserMediaError, but react-webcam has no track listener.
+              stream.getVideoTracks().forEach((track) => {
+                track.onended = () => setHasCameraError(true);
+              });
+            }}
+            onUserMediaError={() => setHasCameraError(true)}
             className="w-full h-full object-cover"
           />
 
@@ -365,6 +386,49 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
             </div>
           )}
 
+          {/* Camera-permission failure: explain and offer a retry */}
+          {hasCameraError && (
+            <div
+              role="alert"
+              className="absolute inset-0 z-30 bg-zinc-900/95 backdrop-blur-sm flex flex-col items-center justify-center text-center gap-4 p-6"
+            >
+              <svg
+                className="w-10 h-10 text-white/70"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+              <p className="text-white font-medium md:text-lg">
+                Camera access is needed to start the booth
+              </p>
+              <p className="text-zinc-400 text-sm max-w-xs">
+                Your photos never leave your device. Allow camera access in your
+                browser, then try again.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  onClick={retryCamera}
+                  className="bg-white text-zinc-950 font-medium px-8 py-3 rounded-full hover:bg-zinc-200 transition-colors w-full sm:w-auto"
+                >
+                  Try again
+                </button>
+                <button
+                  onClick={handleFlipCamera}
+                  className="bg-white/10 text-white hover:bg-white/20 px-6 py-3 rounded-full font-medium transition-colors w-full sm:w-auto"
+                >
+                  Switch camera
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Action bar */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-sm bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3 py-3 grid grid-cols-3 items-center z-30">
             {/* Column 1: Layout toggle (3-photo strip / 4-photo grid) */}
@@ -376,7 +440,7 @@ export const CameraBooth = ({ onExit }: CameraBoothProps) => {
             <div className="flex justify-center">
               <button
                 onClick={startCapture}
-                disabled={isCaptureSessionActive}
+                disabled={isCaptureSessionActive || hasCameraError}
                 aria-label={`Take photo ${Math.min(capturedPhotos.length + 1, PHOTOS_PER_LAYOUT[layout])} of ${PHOTOS_PER_LAYOUT[layout]}`}
                 className="w-16 h-16 rounded-full bg-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform mx-auto"
               />
