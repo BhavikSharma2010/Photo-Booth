@@ -77,7 +77,7 @@ function App() {
       className="w-full min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#F7F5EB] bg-cover bg-center bg-no-repeat bg-fixed"
       style={{
         backgroundImage:
-          "url('https://images.unsplash.com/photo-1776715139302-281f91c0c9ca?w=1920&auto=format&fit=crop&q=80')",
+          "url('https://images.unsplash.com/photo-1776715139302-281f91c0c9ca?w=1920&auto=format&fit=crop&q=85')",
       }}
     >
       {!isBoothActive ? (
@@ -96,10 +96,10 @@ function App() {
             style={{ backgroundImage: BOTANICAL_BG, backgroundSize: '280px 280px' }}
           /> */}
 
-          {/* Cozy frosted overlay — blends the photo into the beige theme, keeps text legible */}
+          {/* Cozy frosted overlay — light beige wash keeps text legible while the photo stays clear */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[#F7F5EB]/65 backdrop-blur-[2px] pointer-events-none z-0"
+            className="absolute inset-0 bg-[#F7F5EB]/40 pointer-events-none z-0"
           />
 
           {/* Header */}
