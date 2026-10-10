@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CameraBooth } from './components/CameraBooth';
+import { SocialLinks } from './components/ui/SocialLinks';
+import { HeroStrip } from './components/HeroStrip';
 // BACKUP: topographic contour backdrop (replaced by the photo background).
 // Restore by uncommenting this and the backdrop block below.
 // import { TOPOGRAPHY_BG } from './lib/patterns';
@@ -65,16 +67,32 @@ const BOTANICAL_TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="280" 
 const BOTANICAL_BG = `url("data:image/svg+xml,${encodeURIComponent(BOTANICAL_TILE_SVG)}")`;
 */
 
+/** How long the shutter-flash overlay plays before the booth opens. */
+const SHUTTER_FLASH_MS = 380;
+
 function App() {
   const [isBoothActive, setIsBoothActive] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
 
+  // The CTA "fires" the camera: a quick white flash, then the booth opens.
+  // Reduced-motion users skip the flash entirely.
   const handleStartBooth = () => {
-    setIsBoothActive(true);
+    if (isFlashing) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setIsBoothActive(true);
+      return;
+    }
+    setIsFlashing(true);
+    window.setTimeout(() => {
+      setIsBoothActive(true);
+      setIsFlashing(false);
+    }, SHUTTER_FLASH_MS);
   };
 
   return (
     <div
-      className="w-full min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#F7F5EB] bg-cover bg-center bg-no-repeat bg-fixed"
+      className="w-full min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#F7F5EB] bg-cover bg-center bg-no-repeat md:bg-fixed"
       style={{
         backgroundImage:
           "url('https://images.unsplash.com/photo-1776715139302-281f91c0c9ca?w=1920&auto=format&fit=crop&q=85')",
@@ -105,12 +123,7 @@ function App() {
           {/* Header */}
           <header className="w-full relative z-10 px-6 py-5 flex justify-between items-center border-b border-[#2C2A29]/10">
             <h1 className="text-[#2C2A29] font-bold text-lg md:text-xl">Virtual Photo Booth</h1>
-            <a
-              href="#"
-              className="text-[#2C2A29]/70 hover:text-[#2C2A29] text-sm font-medium transition-colors"
-            >
-              About
-            </a>
+            <SocialLinks />
           </header>
 
           {/* Hero Section */}
@@ -132,7 +145,11 @@ function App() {
            * Secondary: text-[#1C1B1A]/70
            * Border: border-[#1C1B1A]/10
            */}
-          <section className="flex-grow flex flex-col items-center justify-center relative z-10 text-center px-4">
+          <section
+            ref={heroRef}
+            className="flex-grow flex flex-col items-center justify-center relative z-10 text-center px-4"
+          >
+            <HeroStrip containerRef={heroRef} />
             <h2 className="text-5xl md:text-7xl font-bold tracking-tight text-[#2C2A29] mb-6">
               Capture the moment.
             </h2>
@@ -158,12 +175,20 @@ function App() {
           </section>
 
           {/* Footer */}
-          <footer className="w-full relative z-10 py-6 text-center text-[#2C2A29]/70 text-sm">
+          <footer className="w-full relative z-10 py-6 text-center text-[#2C2A29]/70 text-sm font-bold">
             © 2026 Virtual Photo Booth | Built by Bhavik
           </footer>
         </>
       ) : (
         <CameraBooth onExit={() => setIsBoothActive(false)} />
+      )}
+
+      {/* Shutter-flash overlay when the CTA fires the camera */}
+      {isFlashing && (
+        <div
+          aria-hidden="true"
+          className="shutter-flash fixed inset-0 z-50 bg-white pointer-events-none"
+        />
       )}
     </div>
   );

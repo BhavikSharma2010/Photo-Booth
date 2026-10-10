@@ -7,7 +7,8 @@
   }
 }
 
-/* Camera-flash pulse shown over the viewfinder each time a photo is taken. */
+/* Camera-flash pulse shown over the viewfinder each time a photo is taken.
+   opacity-0 base: nothing shows if the animation never runs (reduced motion). */
 @keyframes capture-flash {
   from {
     opacity: 0.9;
@@ -18,6 +19,162 @@
 }
 
 .capture-flash {
+  opacity: 0;
   animation: capture-flash 400ms ease-out forwards;
 }
 
+/* Countdown numeral pop — replays via key remount on each tick. */
+@keyframes countdown-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.countdown-pulse {
+  animation: countdown-pulse 500ms ease-out;
+}
+
+/* Pose prompt swap-in between countdown ticks and shots. */
+@keyframes pose-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pose-swap {
+  animation: pose-swap 300ms ease-out;
+}
+
+/* Shutter-flash: the landing CTA "fires" the camera before the booth opens. */
+@keyframes shutter-flash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.shutter-flash {
+  animation: shutter-flash 380ms ease-out forwards;
+}
+
+/* Slow idle bob for the hero's floating sample strip. */
+@keyframes strip-bob {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(6px);
+  }
+}
+
+.strip-bob {
+  animation: strip-bob 5s ease-in-out infinite alternate;
+}
+
+/*
+ * Polaroid develop-in for the result reveal: each photo surfaces out of its
+ * frame's photo-well (the tile background shows through while opacity is 0)
+ * and sharpens from a bright, blurred, warm haze. fill-mode: backwards holds
+ * the `from` state through each tile's animation-delay stagger; the `to`
+ * state equals the img's natural styles, so computed styles are clean for
+ * html-to-image once the reveal ends (CameraBooth also gates downloads
+ * until then). Runs on the <img>, not the tile div, so the frame's well
+ * color shows through and the retake hit-button overlay is untouched.
+ */
+@keyframes tile-develop {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+    filter: blur(6px) brightness(1.6) sepia(0.4);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) brightness(1) sepia(0);
+  }
+}
+
+.tile-develop {
+  animation: tile-develop 550ms ease-out backwards;
+}
+
+/* Motion-sensitive users get the same information without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .capture-flash,
+  .countdown-pulse,
+  .pose-swap,
+  .shutter-flash,
+  .strip-bob,
+  .tile-develop {
+    animation: none;
+  }
+}
+
+/* Horizontally scrollable picker rows: hide the scrollbar, fade the edges. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Edge fade hinting that a scroll row has more content. On-screen only —
+   the pickers live outside the html-to-image download target. */
+.scroll-fade-x {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 16px),
+    transparent 100%
+  );
+}
+
+/*
+ * Printed-card width clamps, aware of the viewport HEIGHT so the whole
+ * result column fits without scrolling on short windows. The reserved
+ * "chrome" around the card, measured on mobile: slot padding 24px + pickers
+ * ~272px (Filter/Frame/Photo fit/Caption rows incl. labels + gaps) + action
+ * row ~44px + outer gaps 40px + page padding 32px ≈ 412px. Card heights:
+ * strip = 2.25w + 48px (three 4:3 photos + p-3 padding + gaps), grid =
+ * 2w + 24px (2x2 + p-2 + gap). max(110px, …) keeps the card legible on
+ * absurdly short screens (the column then scrolls invisibly). On tall
+ * screens the 272px cap wins.
+ */
+.result-card-strip {
+  width: min(85%, 272px, max(110px, calc((100dvh - 464px) / 2.25)));
+}
+
+.result-card-grid {
+  width: min(85%, 272px, max(110px, calc((100dvh - 440px) / 2)));
+}
